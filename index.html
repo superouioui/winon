@@ -187,6 +187,7 @@
         let audioContext;
         let isPracticing = false;
         let stopRequested = false;
+        let completedRounds = [];
         let appConfig = {
             breathCount: 30,
             breathSpeed: 30,
@@ -335,10 +336,10 @@
 async function startSession() {
     if (isPracticing) return;
     isPracticing = true;
-    stopRequested = false; // Réinitialiser au début
+    stopRequested = false;
+    completedRounds = []; // Réinitialiser les rounds terminés
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
     
-    // Cacher "Commencer" et afficher "Arrêter"
     document.getElementById('startBtn').style.display = 'none';
     document.getElementById('stopBtn').style.display = 'block';
     
@@ -352,22 +353,39 @@ async function startSession() {
         isInfinite: round.querySelector('.infiniteEmpty').checked
     }));
 
+    console.log("Début de la session, rounds prévus :", currentSession.length);
+
     for (currentRound = 0; currentRound < currentSession.length && !stopRequested; currentRound++) {
+        console.log(`Début du round ${currentRound + 1}`);
         await prepareRound();
-        if (stopRequested) break;
+        if (stopRequested) {
+            console.log(`Arrêt demandé avant hyperventilation du round ${currentRound + 1}`);
+            break;
+        }
         updateRoundInfo(currentRound, currentSession[currentRound].emptyTime);
         await doHyperventilation(breathCount, breathDuration);
-        if (stopRequested) break;
+        if (stopRequested) {
+            console.log(`Arrêt demandé après hyperventilation du round ${currentRound + 1}`);
+            break;
+        }
         updateRoundInfo(currentRound, currentSession[currentRound].emptyTime);
         await doEmptyLungs(currentSession[currentRound]);
-        if (stopRequested) break;
+        if (stopRequested) {
+            console.log(`Arrêt demandé après apnée vide du round ${currentRound + 1}`);
+            break;
+        }
         updateRoundInfo(currentRound, currentSession[currentRound].emptyTime);
         await doFullLungs(currentSession[currentRound].fullTime, currentSession[currentRound]);
+        
+        if (!stopRequested) {
+            console.log(`Round ${currentRound + 1} terminé, ajouté à completedRounds`);
+            completedRounds.push(currentSession[currentRound]);
+        }
     }
     
-    // Sauvegarder les stats même si interrompu
+    console.log("Rounds terminés :", completedRounds.length);
     saveStats();
-    playEndSessionSound(); // Jouer la mélodie même en cas d'arrêt
+    playEndSessionSound();
     isPracticing = false;
     document.getElementById('roundInfo').textContent = '-';
     document.getElementById('startBtn').style.display = 'block';
@@ -513,31 +531,35 @@ async function doFullLungs(time, round) {
             oscillator.stop(audioContext.currentTime + duration);
         }
 
-      function saveStats() {
-            let stats = JSON.parse(localStorage.getItem('apneaStats') || '[]');
-            if (!currentSession || currentSession.length === 0) {
-                console.error("currentSession est vide ou non défini");
-                return;
-            }
-            const sessionData = {
-                date: new Date().toISOString(),
-                rounds: currentSession.map(round => ({
-                    emptyTime: round.emptyTime !== undefined ? round.emptyTime : 0,
-                    tooEasy: round.tooEasy || false
-                    // fullTime est intentionnellement omis ici
-                }))
-            };
-            stats.push(sessionData);
-            localStorage.setItem('apneaStats', JSON.stringify(stats));
-            
-            appConfig.rounds = currentSession.map(round => ({
-                emptyTime: round.isInfinite ? 'infinite' : (round.emptyTime !== undefined ? round.emptyTime : 60),
-                isInfinite: round.isInfinite || false,
+function saveStats() {
+    let stats = JSON.parse(localStorage.getItem('apneaStats') || '[]');
+    
+    console.log("Sauvegarde des stats, rounds terminés :", completedRounds);
+    
+    if (completedRounds.length > 0) {
+        const sessionData = {
+            date: new Date().toISOString(),
+            rounds: completedRounds.map(round => ({
+                emptyTime: round.emptyTime !== undefined ? round.emptyTime : 0,
                 tooEasy: round.tooEasy || false
-            }));
-            localStorage.setItem('apneaConfig', JSON.stringify(appConfig));
-            loadStats();
-        }
+            }))
+        };
+        stats.push(sessionData);
+        localStorage.setItem('apneaStats', JSON.stringify(stats));
+    } else {
+        console.log("Aucun round terminé, rien n'est sauvegardé dans les stats.");
+    }
+    
+    // Mettre à jour appConfig avec tous les rounds (pour la configuration)
+    appConfig.rounds = currentSession.map(round => ({
+        emptyTime: round.isInfinite ? 'infinite' : (round.emptyTime !== undefined ? round.emptyTime : 60),
+        isInfinite: round.isInfinite || false,
+        tooEasy: round.tooEasy || false
+    }));
+    localStorage.setItem('apneaConfig', JSON.stringify(appConfig));
+    loadStats();
+}
+
         function loadStats() {
             const stats = JSON.parse(localStorage.getItem('apneaStats') || '[]');
             const list = document.getElementById('statsList');
