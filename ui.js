@@ -2,7 +2,7 @@ function showSection(sectionId) {
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.getElementById(sectionId).classList.add('active');
-    event.target.classList.add('active');
+    evt.target.classList.add('active');
 }
 
 function addRound(emptyTime = 60, isInfinite = false, tooEasy = false) {
