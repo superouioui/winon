@@ -38,12 +38,17 @@ function saveConfig() {
         tooEasy: round.querySelector('.tooEasy').checked
     }));
 
-    // Gérer le fichier MP3
     const mp3Input = document.getElementById('emptyLungsMp3');
     if (mp3Input.files.length > 0) {
-        appConfig.emptyLungsMp3Url = URL.createObjectURL(mp3Input.files[0]);
+        const file = mp3Input.files[0];
+        if (file.type === 'audio/mpeg' || file.name.endsWith('.mp3')) {
+            appConfig.emptyLungsMp3Url = URL.createObjectURL(file);
+        } else {
+            alert('Veuillez sélectionner un fichier MP3 valide.');
+            appConfig.emptyLungsMp3Url = null;
+        }
     } else {
-        appConfig.emptyLungsMp3Url = null; // Pas de fichier sélectionné
+        appConfig.emptyLungsMp3Url = null;
     }
 
     localStorage.setItem('apneaConfig', JSON.stringify(appConfig));
