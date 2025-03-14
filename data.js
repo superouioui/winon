@@ -23,15 +23,23 @@ function saveStats() {
 function loadStats() {
     const stats = JSON.parse(localStorage.getItem('apneaStats') || '[]');
     const list = document.getElementById('statsList');
-    list.innerHTML = stats.reverse().map(stat => `
-        <li>
-            ${new Date(stat.date).toLocaleDateString()} - 
-            ${stat.rounds.length} rounds<br>
-            ${stat.rounds.map((r, i) => `
-                Round ${i + 1}: Apnée vide: ${r.emptyTime}s ${r.tooEasy ? '(trop facile)' : ''}
-            `).join('<br>')}
-        </li>
-    `).join('');
+    list.innerHTML = stats.reverse().map(stat => {
+        // Calculer la somme des temps d’apnée vide pour cette session
+        const totalEmptyTime = stat.rounds.reduce((sum, round) => {
+            return sum + (typeof round.emptyTime === 'number' ? round.emptyTime : 0);
+        }, 0);
+
+        return `
+            <li>
+                ${new Date(stat.date).toLocaleDateString()} - 
+                ${stat.rounds.length} rounds<br>
+                ${stat.rounds.map((r, i) => `
+                    Round ${i + 1}: Apnée vide: ${r.emptyTime}s ${r.tooEasy ? '(trop facile)' : ''}
+                `).join('<br>')}
+                <br><strong>Total apnée vide: ${totalEmptyTime}s</strong>
+            </li>
+        `;
+    }).join('');
 }
 
 function exportStats() {
@@ -65,13 +73,29 @@ function clearStats() {
     loadStats();
 }
 
-function exportConfig() {
-    const configData = JSON.stringify(appConfig, null, 2);
-    const blob = new Blob([configData], { type: 'application/json' });
+function exportStats() {
+    const stats = JSON.parse(localStorage.getItem('apneaStats') || '[]');
+    if (stats.length === 0) {
+        alert("Aucune statistique à exporter.");
+        return;
+    }
+    let markdown = '# Historique des performances\n\n';
+    stats.forEach(stat => {
+        const totalEmptyTime = stat.rounds.reduce((sum, round) => {
+            return sum + (typeof round.emptyTime === 'number' ? round.emptyTime : 0);
+        }, 0);
+        markdown += `## ${new Date(stat.date).toLocaleDateString()}\n`;
+        stat.rounds.forEach((round, index) => {
+            markdown += `- Round ${index + 1}:\n`;
+            markdown += `  - Apnée vide: ${round.emptyTime}s ${round.tooEasy ? '(trop facile)' : ''}\n`;
+        });
+        markdown += `\n**Total apnée vide: ${totalEmptyTime}s**\n\n`;
+    });
+    const blob = new Blob([markdown], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'apnea_config.json';
+    a.download = 'apnee_stats.md';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
