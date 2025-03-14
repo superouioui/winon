@@ -37,6 +37,15 @@ function saveConfig() {
         isInfinite: round.querySelector('.infiniteEmpty').checked,
         tooEasy: round.querySelector('.tooEasy').checked
     }));
+
+    // Gérer le fichier MP3
+    const mp3Input = document.getElementById('emptyLungsMp3');
+    if (mp3Input.files.length > 0) {
+        appConfig.emptyLungsMp3Url = URL.createObjectURL(mp3Input.files[0]);
+    } else {
+        appConfig.emptyLungsMp3Url = null; // Pas de fichier sélectionné
+    }
+
     localStorage.setItem('apneaConfig', JSON.stringify(appConfig));
 }
 
@@ -49,6 +58,8 @@ function loadConfig() {
         document.getElementById('fullTime').value = appConfig.fullTime;
         document.getElementById('roundsContainer').innerHTML = '';
         appConfig.rounds.forEach(round => addRound(round.isInfinite ? 60 : round.emptyTime, round.isInfinite, round.tooEasy));
+        // Le champ MP3 ne peut pas être pré-rempli avec un fichier pour des raisons de sécurité
+        // On garde l’URL dans appConfig mais on ne peut pas recharger le fichier automatiquement
     } else {
         document.getElementById('breathCount').value = appConfig.breathCount;
         document.getElementById('breathSpeed').value = appConfig.breathSpeed;
@@ -56,3 +67,6 @@ function loadConfig() {
         addRound();
     }
 }
+
+// Ajouter un écouteur pour sauvegarder la config quand le MP3 change
+document.getElementById('emptyLungsMp3').addEventListener('change', saveConfig);

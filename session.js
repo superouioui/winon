@@ -67,6 +67,14 @@ async function doEmptyLungs(round) {
     const counter = document.getElementById('counter');
     circle.className = 'breath-circle empty';
     
+    // Créer un objet Audio si un MP3 est défini
+    let audio;
+    if (appConfig.emptyLungsMp3Url) {
+        audio = new Audio(appConfig.emptyLungsMp3Url);
+        audio.loop = true; // Répéter le MP3 pendant toute la durée
+        audio.play();
+    }
+
     if (round.isInfinite) {
         let time = 0;
         counter.textContent = time;
@@ -81,6 +89,7 @@ async function doEmptyLungs(round) {
         await new Promise(resolve => {
             document.addEventListener('click', function stopInfinite() {
                 clearInterval(interval);
+                if (audio) audio.pause(); // Arrêter le MP3
                 document.removeEventListener('click', stopInfinite);
                 resolve();
             });
@@ -93,9 +102,11 @@ async function doEmptyLungs(round) {
             const interval = setInterval(() => {
                 if (stopRequested) {
                     clearInterval(interval);
+                    if (audio) audio.pause(); // Arrêter le MP3
                     resolve();
                 } else if (remaining-- <= 0) {
                     clearInterval(interval);
+                    if (audio) audio.pause(); // Arrêter le MP3
                     playSound(660);
                     resolve();
                 }

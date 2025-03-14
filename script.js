@@ -24,4 +24,5 @@ function initialize() {
     document.getElementById('breathCount').addEventListener('change', saveConfig);
     document.getElementById('breathSpeed').addEventListener('change', saveConfig);
     document.getElementById('fullTime').addEventListener('change', saveConfig);
+    document.getElementById('emptyLungsMp3').addEventListener('change', saveConfig); // Ajout ici
 }
